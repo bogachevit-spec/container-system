@@ -1,0 +1,188 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ResourceType {
+  PDF
+  XLS
+  WEBSITE
+}
+
+model Line {
+  id                String               @id @default(cuid())
+
+  name              String               @unique
+
+  aliases           String[]
+  keywords          String[]
+
+  notes             String?
+
+  effectiveDate     DateTime?
+
+  demurrageRules    LineDemurrage[]
+
+  resources         Resource[]
+
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  @@index([name])
+}
+
+model LineDemurrage {
+  id                String      @id @default(cuid())
+
+  lineId            String
+  line              Line        @relation(fields: [lineId], references: [id], onDelete: Cascade)
+
+  containerType     String
+  freeDays          Int
+
+  note              String?
+
+  createdAt         DateTime    @default(now())
+
+  @@index([lineId])
+}
+
+model Port {
+  id                    String              @id @default(cuid())
+
+  name                  String              @unique
+  city                  String
+
+  aliases               String[]
+  keywords              String[]
+
+  notes                 String?
+
+  freeStorageDays       Int?
+
+  settlementWithLine    Boolean             @default(false)
+
+  penalties             PortPenalty[]
+
+  terminals             Terminal[]
+
+  resources             Resource[]
+
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@index([name])
+  @@index([city])
+}
+
+model PortPenalty {
+  id                String      @id @default(cuid())
+
+  portId            String
+  port              Port        @relation(fields: [portId], references: [id], onDelete: Cascade)
+
+  title             String
+  price             String
+
+  note              String?
+
+  createdAt         DateTime    @default(now())
+
+  @@index([portId])
+}
+
+model Terminal {
+  id                    String                @id @default(cuid())
+
+  name                  String                @unique
+  city                  String
+
+  aliases               String[]
+  keywords              String[]
+
+  notes                 String?
+
+  portId                String?
+  port                  Port?                 @relation(fields: [portId], references: [id])
+
+  freeStorageDays       Int?
+
+  storageTariffs        TerminalStorageTariff[]
+  services              TerminalService[]
+
+  resources             Resource[]
+
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  @@index([name])
+  @@index([city])
+  @@index([portId])
+}
+
+model TerminalStorageTariff {
+  id                String      @id @default(cuid())
+
+  terminalId        String
+  terminal          Terminal    @relation(fields: [terminalId], references: [id], onDelete: Cascade)
+
+  fromDay           Int
+  toDay             Int
+
+  price             String
+
+  note              String?
+
+  createdAt         DateTime    @default(now())
+
+  @@index([terminalId])
+}
+
+model TerminalService {
+  id                String      @id @default(cuid())
+
+  terminalId        String
+  terminal          Terminal    @relation(fields: [terminalId], references: [id], onDelete: Cascade)
+
+  type              String
+  price             String
+
+  note              String?
+
+  createdAt         DateTime    @default(now())
+
+  @@index([terminalId])
+}
+
+model Resource {
+  id                String          @id @default(cuid())
+
+  type              ResourceType
+
+  title             String?
+  description       String?
+
+  fileName          String?
+  fileUrl           String?
+
+  websiteUrl        String?
+
+  lineId            String?
+  line              Line?           @relation(fields: [lineId], references: [id], onDelete: Cascade)
+
+  portId            String?
+  port              Port?           @relation(fields: [portId], references: [id], onDelete: Cascade)
+
+  terminalId        String?
+  terminal          Terminal?       @relation(fields: [terminalId], references: [id], onDelete: Cascade)
+
+  createdAt         DateTime        @default(now())
+
+  @@index([lineId])
+  @@index([portId])
+  @@index([terminalId])
+}
